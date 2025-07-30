@@ -54,4 +54,118 @@
       cursor: not-allowed;
     }
     #result {
-      margin-top: 
+      margin-top: 20px;
+      font-size: 24px;
+      color: #ffcc00;
+      min-height: 30px;
+      min-width: 300px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Plen Bet Match</h1>
+
+  <div id="balance">Balance: <span id="balanceAmount">100</span> coins</div>
+
+  <div id="bet-select">
+    <button data-bet="1">1</button>
+    <button data-bet="5">5</button>
+    <button data-bet="10">10</button>
+    <button data-bet="20">20</button>
+    <button data-bet="50">50</button>
+  </div>
+
+  <div id="symbols">❓ ❓ ❓</div>
+
+  <button id="spinBtn" disabled>Spin</button>
+
+  <div id="result"></div>
+
+  <script>
+    const balanceSpan = document.getElementById('balanceAmount');
+    const betButtons = document.querySelectorAll('#bet-select button');
+    const spinBtn = document.getElementById('spinBtn');
+    const symbolsDiv = document.getElementById('symbols');
+    const resultDiv = document.getElementById('result');
+
+    let balance = 100;
+    let currentBet = 0;
+
+    const symbolSet = ['🍒', '🍋', '🍉', '⭐', '7️⃣'];
+
+    function selectBet(amount) {
+      currentBet = amount;
+      betButtons.forEach(btn => {
+        btn.classList.toggle('selected', Number(btn.dataset.bet) === amount);
+      });
+      spinBtn.disabled = balance < currentBet;
+      resultDiv.textContent = '';
+    }
+
+    betButtons.forEach(btn => {
+      btn.addEventListener('click', () => selectBet(Number(btn.dataset.bet)));
+    });
+
+    function spin() {
+      if (currentBet === 0 || balance < currentBet) return;
+      spinBtn.disabled = true;
+      resultDiv.textContent = '';
+
+      // Randomly pick 3 symbols
+      let results = [];
+      for (let i = 0; i < 3; i++) {
+        const randomIndex = Math.floor(Math.random() * symbolSet.length);
+        results.push(symbolSet[randomIndex]);
+      }
+
+      // Animate spin effect
+      let animationCount = 0;
+      const animationInterval = setInterval(() => {
+        symbolsDiv.textContent = Array(3).fill(symbolSet[Math.floor(Math.random() * symbolSet.length)]).join(' ');
+        animationCount++;
+        if (animationCount >= 10) {
+          clearInterval(animationInterval);
+          symbolsDiv.textContent = results.join(' ');
+          evaluateSpin(results);
+          spinBtn.disabled = false;
+        }
+      }, 100);
+    }
+
+    function evaluateSpin(results) {
+      let payout = 0;
+      const counts = {};
+      results.forEach(sym => {
+        counts[sym] = (counts[sym] || 0) + 1;
+      });
+
+      if (Object.values(counts).includes(3)) {
+        // 3 match = x5
+        payout = currentBet * 5;
+        resultDiv.textContent = `🎉 Triple match! You win ${payout} coins!`;
+      } else if (Object.values(counts).includes(2)) {
+        // 2 match = double
+        payout = currentBet * 2;
+        resultDiv.textContent = `Nice! Double match! You win ${payout} coins!`;
+      } else {
+        payout = 0;
+        resultDiv.textContent = `No match. You lose your bet of ${currentBet} coins.`;
+      }
+
+      balance = balance - currentBet + payout;
+      balanceSpan.textContent = balance;
+
+      // Disable spin if balance too low
+      if (balance < currentBet) {
+        spinBtn.disabled = true;
+        resultDiv.textContent += ' Your balance is too low for that bet.';
+      }
+    }
+
+    spinBtn.addEventListener('click', spin);
+
+    // Initialize UI
+    selectBet(1);
+  </script>
+</body>
+</html>
