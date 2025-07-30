@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Plen Bet Match</title>
+  <title>Bet Game</title>
   <style>
     body {
       background: #111;
@@ -60,10 +60,23 @@
       min-height: 30px;
       min-width: 300px;
     }
+    #leaderboard {
+      margin-top: 30px;
+      font-size: 18px;
+      list-style: none;
+      padding: 0;
+    }
+    #leaderboard li {
+      padding: 4px;
+      background: #222;
+      margin: 4px auto;
+      border-radius: 5px;
+      width: 260px;
+    }
   </style>
 </head>
 <body>
-  <h1>Plen Bet Match</h1>
+  <h1>🎰 Bet Game</h1>
 
   <div id="balance">Balance: <span id="balanceAmount">100</span> coins</div>
 
@@ -81,6 +94,9 @@
 
   <div id="result"></div>
 
+  <h2>🏆 Leaderboard</h2>
+  <ol id="leaderboard"></ol>
+
   <script>
     const balanceSpan = document.getElementById('balanceAmount');
     const betButtons = document.querySelectorAll('#bet-select button');
@@ -90,9 +106,38 @@
 
     let balance = 100;
     let currentBet = 0;
-
     const symbolSet = ['🍒', '🍋', '🍉', '⭐', '7️⃣'];
 
+    // 🧠 PLAYER NAME
+    let playerName = localStorage.getItem('playerName');
+    if (!playerName) {
+      playerName = prompt("Enter your name:") || "PlenPlayer";
+      localStorage.setItem('playerName', playerName);
+    }
+
+    // 🧠 LEADERBOARD
+    let leaderboard = JSON.parse(localStorage.getItem('plenLeaderboard')) || [];
+    updateLeaderboardDisplay();
+
+    function updateLeaderboard(newScore) {
+      leaderboard.push({ name: playerName, score: newScore });
+      leaderboard.sort((a, b) => b.score - a.score);
+      leaderboard = leaderboard.slice(0, 5);
+      localStorage.setItem('plenLeaderboard', JSON.stringify(leaderboard));
+      updateLeaderboardDisplay();
+    }
+
+    function updateLeaderboardDisplay() {
+      const list = document.getElementById('leaderboard');
+      list.innerHTML = '';
+      leaderboard.forEach((entry, index) => {
+        const item = document.createElement('li');
+        item.textContent = `${index + 1}. ${entry.name} - ${entry.score} coins`;
+        list.appendChild(item);
+      });
+    }
+
+    // BET SELECTION
     function selectBet(amount) {
       currentBet = amount;
       betButtons.forEach(btn => {
@@ -106,19 +151,18 @@
       btn.addEventListener('click', () => selectBet(Number(btn.dataset.bet)));
     });
 
+    // SPIN LOGIC
     function spin() {
       if (currentBet === 0 || balance < currentBet) return;
       spinBtn.disabled = true;
       resultDiv.textContent = '';
 
-      // Randomly pick 3 symbols
       let results = [];
       for (let i = 0; i < 3; i++) {
         const randomIndex = Math.floor(Math.random() * symbolSet.length);
         results.push(symbolSet[randomIndex]);
       }
 
-      // Animate spin effect
       let animationCount = 0;
       const animationInterval = setInterval(() => {
         symbolsDiv.textContent = Array(3).fill(symbolSet[Math.floor(Math.random() * symbolSet.length)]).join(' ');
@@ -140,22 +184,20 @@
       });
 
       if (Object.values(counts).includes(3)) {
-        // 3 match = x5
         payout = currentBet * 5;
         resultDiv.textContent = `🎉 Triple match! You win ${payout} coins!`;
       } else if (Object.values(counts).includes(2)) {
-        // 2 match = double
         payout = currentBet * 2;
-        resultDiv.textContent = `Nice! Double match! You win ${payout} coins!`;
+        resultDiv.textContent = `Double match! You win ${payout} coins!`;
       } else {
         payout = 0;
-        resultDiv.textContent = `No match. You lose your bet of ${currentBet} coins.`;
+        resultDiv.textContent = `No match. You lost ${currentBet} coins.`;
       }
 
       balance = balance - currentBet + payout;
       balanceSpan.textContent = balance;
+      updateLeaderboard(balance);
 
-      // Disable spin if balance too low
       if (balance < currentBet) {
         spinBtn.disabled = true;
         resultDiv.textContent += ' Your balance is too low for that bet.';
@@ -163,9 +205,7 @@
     }
 
     spinBtn.addEventListener('click', spin);
-
-    // Initialize UI
-    selectBet(1);
+    selectBet(1); // Default bet on load
   </script>
 </body>
 </html>
